@@ -16,26 +16,30 @@ function requiredFieldErrors() {
       let hasError = false;
 
       form.querySelectorAll("[required]").forEach(field => {
-        // Remove any old error message before re-checking
-        const existingError = field.parentNode.querySelector(".error-text");
-        if (existingError) existingError.remove();
+        // Remove any old error text directly tied to this input
+        const nextEl = field.nextElementSibling;
+        if (nextEl && nextEl.classList.contains("error-text")) {
+          nextEl.remove();
+        }
 
         if (!field.value.trim()) {
           hasError = true;
 
-          // Create new error element
+          // Create error message element
           const errorMsg = document.createElement("div");
           errorMsg.classList.add("error-text");
           errorMsg.textContent = "Please fill out required form fields.";
 
-          // Place it *right after the input field*
+          // ✅ Insert directly after the input itself
           field.insertAdjacentElement("afterend", errorMsg);
+
+          console.log("Error added for field:", field.name || field.id || field.type);
         }
       });
 
       if (hasError) {
         e.preventDefault();
-        e.stopImmediatePropagation(); // stop Webflow AJAX submit
+        e.stopImmediatePropagation(); // Stop Webflow AJAX
       }
     });
   });
