@@ -10,7 +10,7 @@ function limitChars() {
   });
 }
 
-// ===== Email Blocker Utility =====
+// ===== Email Blocker Utility (Webflow-safe) =====
 function blockEmails() {
   document.querySelectorAll('input[type="email"][data-blocked-emails]').forEach(emailInput => {
     const blockedDomains = emailInput
@@ -31,21 +31,26 @@ function blockEmails() {
       emailInput.insertAdjacentElement("afterend", errorMsg);
     }
 
-    // Validate on submit
-    emailInput.closest("form").addEventListener("submit", (e) => {
-      const value = emailInput.value.trim().toLowerCase();
-      const domain = value.split("@")[1] || "";
+    // Override Webflow's AJAX submit by using "onsubmit"
+    const form = emailInput.closest("form");
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        const value = emailInput.value.trim().toLowerCase();
+        const domain = value.split("@")[1] || "";
 
-      if (blockedDomains.includes(domain)) {
-        e.preventDefault();
-        e.stopImmediatePropagation(); // 🚫 stops Webflow from continuing AJAX submit
-        errorMsg.style.display = "block";
-      } else {
-        errorMsg.style.display = "none";
-      }
-    });
+        if (blockedDomains.includes(domain)) {
+          e.preventDefault();              // block browser default
+          e.stopImmediatePropagation();    // block Webflow handler
+          errorMsg.style.display = "block";
+          return false;
+        } else {
+          errorMsg.style.display = "none";
+        }
+      }, true); // 👈 useCapture = true ensures this runs before Webflow's handler
+    }
   });
 }
+
 
 // ===== Init All Utilities =====
 window.addEventListener("load", () => {
