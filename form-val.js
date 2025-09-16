@@ -1,3 +1,11 @@
+/*
+Required attributes for domain blocking in Webflow form:
+- data-blocked-emails: On <form> or email <input>, lists blocked domains (e.g., "gmail.com,outlook.com")
+- ms-code-require: On email <input>, unique ID (e.g., "email")
+- ms-code-require-error: On error element (e.g., <p>), matches ms-code-require (e.g., "email")
+- ms-code-submit-button: On submit <button>, matches ms-code-require (e.g., "email")
+- data-error-message (optional): On <form> or email <input>, custom error text (e.g., "Use a company email")
+*/
 document.addEventListener('DOMContentLoaded', function() {
     // Debounce function
     function debounce(func, wait) {
