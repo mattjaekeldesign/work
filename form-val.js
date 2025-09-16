@@ -1,6 +1,3 @@
-
-<!-- 💙 MEMBERSCRIPT #127 v0.1 💙 - TEXT INPUT VALIDATION -->
-
 document.addEventListener('DOMContentLoaded', function() {
     // Debounce function
     function debounce(func, wait) {
@@ -15,63 +12,74 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Find all fields with ms-code-require attribute
-    const fields = document.querySelectorAll('[ms-code-require]');
+    // Find all forms or inputs with data-blocked-emails attribute
+    const fields = document.querySelectorAll('[data-blocked-emails]');
     fields.forEach(field => {
-        // Get the error element for this field
-        const errorElement = document.querySelector(`[ms-code-require-error="${field.getAttribute('ms-code-require')}"]`);
-        // Hide error message initially
+        // Get the form containing the field (field could be input or form itself)
+        const form = field.tagName === 'FORM' ? field : field.closest('form');
+        if (!form) return;
+
+        // Get the email input (either the field itself or within the form)
+        const emailInput = field.tagName === 'INPUT' && field.type === 'email' ? field : form.querySelector('input[type="email"]');
+        if (!emailInput) return;
+
+        // Get the blocked domains list
+        const blockedStr = field.getAttribute('data-blocked-emails');
+        const blocked = blockedStr ? blockedStr.split(',').map(d => d.trim().toLowerCase()) : [];
+
+        // Get the error element (use ms-code-require-error for compatibility, or data-error-element)
+        const errorElement = document.querySelector(`[ms-code-require-error="${emailInput.getAttribute('ms-code-require') || emailInput.name}"]`) ||
+                            document.querySelector(`[data-error-element="${emailInput.name}"]`);
         if (errorElement) {
             errorElement.style.display = 'none';
         }
-        // Get the form containing the field
-        const form = field.closest('form');
+
+        // Get the custom error message or use default
+        const errorMsg = field.getAttribute('data-error-message') || 'Please use a company email address.';
+
         // Get the submit button
-        const submitButton = form ? form.querySelector(`[ms-code-submit-button="${field.getAttribute('ms-code-require')}"]`) : null;
-        // Get the require-list attribute value
-        const requireList = field.getAttribute('ms-code-require-list');
-        if (requireList) {
-            // Convert the require-list to an array of regex patterns
-            const patterns = requireList.split(',').map(pattern => {
-                return pattern.replace(/\{([^}]+)\}/g, (match, p1) => {
-                    return p1.split('').map(char => {
-                        switch(char) {
-                            case '0': return '\\d';
-                            case 'A': return '[A-Z]';
-                            case 'a': return '[a-z]';
-                            default: return char;
-                        }
-                    }).join('');
-                });
-            });
-            // Validate function
-            function validateField() {
-                const value = field.value;
-                const isValid = patterns.some(pattern => new RegExp(`^${pattern}$`).test(value));
-                if (errorElement) {
-                    errorElement.style.display = isValid ? 'none' : 'block';
+        const submitButton = form.querySelector(`[ms-code-submit-button="${emailInput.getAttribute('ms-code-require') || emailInput.name}"]`) ||
+                            form.querySelector('button[type="submit"]');
+
+        // Validate function
+        function validateField() {
+            const email = emailInput.value.trim();
+            let isValid = true;
+            if (email) {
+                const domain = email.split('@')[1]?.toLowerCase();
+                if (domain && blocked.includes(domain)) {
+                    isValid = false;
+                    emailInput.setCustomValidity(errorMsg);
+                } else {
+                    emailInput.setCustomValidity('');
                 }
-                if (submitButton) {
-                    submitButton.style.opacity = isValid ? '1' : '0.5';
-                    submitButton.style.pointerEvents = isValid ? 'auto' : 'none';
-                }
-                return isValid;
+            } else {
+                emailInput.setCustomValidity('');
             }
-            // Debounced validate function
-            const debouncedValidate = debounce(validateField, 500);
-            // Add blur event listener
-            field.addEventListener('blur', validateField);
-            // Add input event listener for debounced validation
-            field.addEventListener('input', debouncedValidate);
-            // Handle form submission
-            if (form) {
-                form.addEventListener('submit', function(event) {
-                    if (!validateField() && submitButton) {
-                        event.preventDefault();
-                        field.focus();
-                    }
-                });
+            emailInput.reportValidity();
+            if (errorElement) {
+                errorElement.style.display = isValid ? 'none' : 'block';
             }
+            if (submitButton) {
+                submitButton.style.opacity = isValid ? '1' : '0.5';
+                submitButton.style.pointerEvents = isValid ? 'auto' : 'none';
+            }
+            return isValid;
         }
+
+        // Debounced validate function
+        const debouncedValidate = debounce(validateField, 500);
+
+        // Add event listeners
+        emailInput.addEventListener('blur', validateField);
+        emailInput.addEventListener('input', debouncedValidate);
+
+        // Handle form submission
+        form.addEventListener('submit', function(event) {
+            if (!validateField()) {
+                event.preventDefault();
+                emailInput.focus();
+            }
+        });
     });
 });
