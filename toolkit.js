@@ -10,44 +10,43 @@ function limitChars() {
   });
 }
 
-function inlineRequiredErrors() {
-  document.querySelectorAll("[required]").forEach(field => {
-    // Create a reusable function to show/hide error
+function blockEmailDomains() {
+  document.querySelectorAll('input[type="email"][data-blocked-emails]').forEach(emailInput => {
+    const blockedDomains = emailInput
+      .getAttribute("data-blocked-emails")
+      .split(",")
+      .map(d => d.trim().toLowerCase());
+
+    // Validate function
     const validate = () => {
-      // Remove any old error
-      const nextEl = field.nextElementSibling;
+      // Remove old error
+      const nextEl = emailInput.nextElementSibling;
       if (nextEl && nextEl.classList.contains("error-text")) {
         nextEl.remove();
       }
 
-      // Check if empty
-      if (!field.value.trim()) {
+      const value = emailInput.value.trim().toLowerCase();
+      const domain = value.split("@")[1] || "";
+
+      if (blockedDomains.includes(domain)) {
         const errorMsg = document.createElement("div");
         errorMsg.classList.add("error-text");
-        errorMsg.textContent = "Please fill out this field.";
-        field.insertAdjacentElement("afterend", errorMsg);
-        field.classList.add("field-error");
+        errorMsg.textContent = "Please use a company email address.";
+        emailInput.insertAdjacentElement("afterend", errorMsg);
+        emailInput.classList.add("field-error");
       } else {
-        field.classList.remove("field-error");
+        emailInput.classList.remove("field-error");
       }
     };
 
-    // Show error when user leaves the field
-    field.addEventListener("blur", validate);
-
-    // Clear error live as they type
-    field.addEventListener("input", () => {
-      const nextEl = field.nextElementSibling;
-      if (nextEl && nextEl.classList.contains("error-text")) {
-        nextEl.remove();
-      }
-      field.classList.remove("field-error");
-    });
+    // Check while typing and when leaving the field
+    emailInput.addEventListener("input", validate);
+    emailInput.addEventListener("blur", validate);
   });
 }
 
 // ===== Init All Utilities =====
 window.addEventListener("load", () => {
   limitChars();
-  inlineRequiredErrors();
+  blockEmailDomains();
 });
