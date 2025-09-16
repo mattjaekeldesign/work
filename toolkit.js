@@ -10,44 +10,44 @@ function limitChars() {
   });
 }
 
-function requiredFieldErrors() {
-  document.querySelectorAll("form").forEach(form => {
-    form.addEventListener("submit", (e) => {
-      let hasError = false;
-
-      form.querySelectorAll("[required]").forEach(field => {
-        // Remove any old error text directly tied to this input
-        const nextEl = field.nextElementSibling;
-        if (nextEl && nextEl.classList.contains("error-text")) {
-          nextEl.remove();
-        }
-
-        if (!field.value.trim()) {
-          hasError = true;
-
-          // Create error message element
-          const errorMsg = document.createElement("div");
-          errorMsg.classList.add("error-text");
-          errorMsg.textContent = "Please fill out required form fields.";
-
-          // ✅ Insert directly after the input itself
-          field.insertAdjacentElement("afterend", errorMsg);
-
-          console.log("Error added for field:", field.name || field.id || field.type);
-        }
-      });
-
-      if (hasError) {
-        e.preventDefault();
-        e.stopImmediatePropagation(); // Stop Webflow AJAX
+function inlineRequiredErrors() {
+  document.querySelectorAll("[required]").forEach(field => {
+    // Create a reusable function to show/hide error
+    const validate = () => {
+      // Remove any old error
+      const nextEl = field.nextElementSibling;
+      if (nextEl && nextEl.classList.contains("error-text")) {
+        nextEl.remove();
       }
+
+      // Check if empty
+      if (!field.value.trim()) {
+        const errorMsg = document.createElement("div");
+        errorMsg.classList.add("error-text");
+        errorMsg.textContent = "Please fill out this field.";
+        field.insertAdjacentElement("afterend", errorMsg);
+        field.classList.add("field-error");
+      } else {
+        field.classList.remove("field-error");
+      }
+    };
+
+    // Show error when user leaves the field
+    field.addEventListener("blur", validate);
+
+    // Clear error live as they type
+    field.addEventListener("input", () => {
+      const nextEl = field.nextElementSibling;
+      if (nextEl && nextEl.classList.contains("error-text")) {
+        nextEl.remove();
+      }
+      field.classList.remove("field-error");
     });
   });
 }
 
-
 // ===== Init All Utilities =====
 window.addEventListener("load", () => {
   limitChars();
-  requiredFieldErrors();
+  inlineRequiredErrors();
 });
